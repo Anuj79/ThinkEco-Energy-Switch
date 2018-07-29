@@ -1,5 +1,5 @@
 /*
-*	Think Eco Energy Switch 
+*	Think Eco Energy Switch
 *
 *  Copyright 2017 Elastic Development
 *
@@ -268,16 +268,10 @@ def parse(String description) {
 def on() {
   if (state.onOffDisabled) {
       if (state.debug) log.debug "On/Off disabled"
-      delayBetween([
-    zwave.basicV1.basicGet().format(),
-        zwave.switchBinaryV1.switchBinaryGet().format()
-      ], 5)
+
   }
   else {
-      delayBetween([
-    zwave.basicV1.basicSet(value: 0xFF).format(),
-          zwave.switchBinaryV1.switchBinaryGet().format()
-])
+
   }
 }
 
@@ -289,16 +283,10 @@ def on() {
 def off() {
   if (state.onOffDisabled) {
       if (state.debug) log.debug "On/Off disabled"
-      delayBetween([
-    zwave.basicV1.basicGet().format(),
-        zwave.switchBinaryV1.switchBinaryGet().format()
-      ], 5)
+
   }
   else {
-      delayBetween([
-    zwave.basicV1.basicSet(value: 0x00).format(),
-          zwave.switchBinaryV1.switchBinaryGet().format()
-])
+
   }
 }
 
@@ -308,19 +296,14 @@ def off() {
 *  Required for the "Polling" capability
 */
 def poll() {
-  delayBetween([
-zwave.basicV1.basicGet().format(),
-zwave.switchBinaryV1.switchBinaryGet().format(),
-zwave.meterV3.meterGet(scale: 0).format(),	//kWh
-zwave.meterV3.meterGet(scale: 2).format()	//Wattage
-  ])
+
 }
 
 /**
 *  refresh - Refreshed values from the device
 *
 *  Required for the "Refresh" capability
-*/
+
 def refresh() {
   delayBetween([
 zwave.basicV1.basicGet().format(),
@@ -335,19 +318,15 @@ zwave.meterV3.meterGet(scale: 2).format()	//Wattage
 *  reset - Resets the devices energy usage meter
 *
 *  Defined by the custom command "reset"
-*/
+
 def reset() {
-  return [
-zwave.meterV3.meterReset().format(),
-zwave.meterV3.meterGet(scale: 0).format() //kWh
-  ]
 }
 
 /**
 *  configure - Configures the parameters of the device
 *
 *  Required for the "Configuration" capability
-*/
+
 def configure() {
   //Get the values from the preferences section
   def reportIntervalSecs = 60;
@@ -355,62 +334,6 @@ def configure() {
 reportIntervalSecs = 60 * reportInterval.toInteger()
   }
 
-  def switchAllMode = physicalgraph.zwave.commands.switchallv1.SwitchAllSet.MODE_INCLUDED_IN_THE_ALL_ON_ALL_OFF_FUNCTIONALITY
-  if (switchAll == "Disabled") {
-switchAllMode = physicalgraph.zwave.commands.switchallv1.SwitchAllSet.MODE_EXCLUDED_FROM_THE_ALL_ON_ALL_OFF_FUNCTIONALITY
-  }
-  else if (switchAll == "Off Enabled") {
-switchAllMode = physicalgraph.zwave.commands.switchallv1.SwitchAllSet.MODE_EXCLUDED_FROM_THE_ALL_ON_FUNCTIONALITY_BUT_NOT_ALL_OFF
-  }
-  else if (switchAll == "On Enabled") {
-switchAllMode = physicalgraph.zwave.commands.switchallv1.SwitchAllSet.MODE_EXCLUDED_FROM_THE_ALL_OFF_FUNCTIONALITY_BUT_NOT_ALL_ON
-  }
-
-if (state.debug) log.debug "configure(reportIntervalSecs: ${reportIntervalSecs}, switchAllMode: ${switchAllMode})"
-
-  /***************************************************************
-  Device specific configuration parameters
-  ----------------------------------------------------------------
-  Param   Size    Default Description
-  ------- ------- ------- ----------------------------------------
-  0x01    1       0       The content of "Multilevel Sensor Report Command" after SE receives "Multilevel Sensor Get Command".
-  0x02    1       N/A     Make SE blink
-  0x50    1       0       Enable to send notifications to associated devices in Group 1 when load changes (0=nothing, 1=hail CC, 2=basic CC report)
-  0x5A    1       0       Enables/disables parameter 0x5A and 0x5B below
-  0x5B    2       50      The value here represents minimum change in wattage (in terms of wattage) for a REPORT to be sent (default 50W, size 2 bytes).
-  0x5C    1       10      The value here represents minimum change in wattage (in terms of percentage) for a REPORT to be sent (default 10%, size 1 byte).
-  0x64    1       N/A     Set 0x65-0x67 to default
-  0x65    4       8       Which reports need to send in Report group 1
-  0x66    4       0       Which reports need to send in Report group 2
-  0x67    4       0       Which reports need to send in Report group 3
-  0x6E    1       N/A     Set 0x6F-0x71 to default.
-  0x6F    4       600     The time interval in seconds for sending Report group 1 (Valid values 0x01‐0x7FFFFFFF).
-  0x70    4       600     The time interval in seconds for sending Report group 2 (Valid values 0x01‐0x7FFFFFFF).
-  0x71    4       600     The time interval in seconds for sending Report group 3 (Valid values 0x01‐0x7FFFFFFF).
-  0xFE    2       0       Device Tag
-  0xFF    1       N/A     Reset to factory default setting
-
-  Configuration Values for parameters 0x65-0x67:
-  BYTE  | 7  6  5  4  3  2  1  0
-  ===============================
-  MSB 0 | 0  0  0  0  0  0  0  0
-  Val 1 | 0  0  0  0  0  0  0  0
-  VAL 2 | 0  0  0  0  0  0  0  0
-  LSB 3 | 0  0  0  0  A  B  C  0
-
-  Bit A - Send Meter REPORT (for kWh) at the group time interval
-  Bit B - Send Meter REPORT (for watt) at the group time interval
-  Bit C - Automatically send(1) or don't send(0) Multilevel Sensor Report Command
-  ***************************************************************/
-  delayBetween([
-zwave.switchAllV1.switchAllSet(mode: switchAllMode).format(),
-zwave.configurationV1.configurationSet(parameterNumber: 0x50, size: 1, scaledConfigurationValue: 2).format(),	//Enable to send notifications to associated devices when load changes (0=nothing, 1=hail CC, 2=basic CC report)
-zwave.configurationV1.configurationSet(parameterNumber: 0x5A, size: 1, scaledConfigurationValue: 1).format(),	//Enables parameter 0x5B and 0x5C (0=disabled, 1=enabled)
-zwave.configurationV1.configurationSet(parameterNumber: 0x5B, size: 2, scaledConfigurationValue: 5).format(),	//Minimum change in wattage for a REPORT to be sent (Valid values 0 - 60000)
-zwave.configurationV1.configurationSet(parameterNumber: 0x5C, size: 1, scaledConfigurationValue: 5).format(),	//Minimum change in percentage for a REPORT to be sent (Valid values 0 - 100)
-zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 4, scaledConfigurationValue: 14).format(),	//Which reports need to send in Report group 1
-zwave.configurationV1.configurationSet(parameterNumber: 0x6F, size: 4, scaledConfigurationValue: reportIntervalSecs).format(),	//Send Report to group 1 for this interval (Valid values 0x01‐0x7FFFFFFF)
-  ])
 }
 
 /********************************************************************************
@@ -433,7 +356,7 @@ def zwaveEvent(physicalgraph.zwave.Command cmd) {    if (state.debug) {
 *  COMMAND_CLASS_BASIC (0x20)
 *
 *  Short	value	0xFF for on, 0x00 for off
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd)
 {
   if (state.debug) log.debug "BasicSet(value:${cmd.value})"
@@ -444,7 +367,7 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd)
 *  COMMAND_CLASS_BASIC (0x20)
 *
 *  Short	value	0xFF for on, 0x00 for off
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd)
 {
   if (state.debug) log.debug "BasicReport(value:${cmd.value})"
@@ -455,7 +378,7 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd)
 *  COMMAND_CLASS_SWITCH_BINARY (0x25)
 *
 *  Short	value	0xFF for on, 0x00 for off
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd)
 {
   if (state.debug) log.debug "SwitchBinarySet(value:${cmd.value})"
@@ -466,7 +389,7 @@ def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinarySet cmd)
 *  COMMAND_CLASS_SWITCH_BINARY (0x25)
 *
 *  Short	value	0xFF for on, 0x00 for off
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd)
 {
   if (state.debug) log.debug "SwitchBinaryReport(value:${cmd.value})"
@@ -487,7 +410,7 @@ def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cm
 *  Short	precision		    The decimal precision of the values
 *  Short	rateType		    ???
 *  Boolean	scale2			    ???
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
   def meterTypes = ["Unknown", "Electric", "Gas", "Water"]
   def electricNames = ["energy", "energy", "power", "count",  "voltage", "current", "powerFactor",  "unknown"]
@@ -541,7 +464,7 @@ def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
 *
 *  Short	sensorType	Supported Sensor: 0x04 (power Sensor)
 *  Short	scale		Supported scale:  0x00 (W) and 0x01 (BTU/h)
-*/
+
 def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd)
 {
   if (state.debug) log.debug "SensorMultilevelReport(sensorType:${cmd.sensorType}, scale:${cmd.scale}, precision:${cmd.precision}, scaledSensorValue:${cmd.scaledSensorValue}, sensorValue:${cmd.sensorValue}, size:${cmd.size})"
@@ -567,4 +490,5 @@ def zwaveEvent(physicalgraph.zwave.commands.sensormultilevelv5.SensorMultilevelR
   }
   createEvent(map)
 }
+*/
 //EOF
